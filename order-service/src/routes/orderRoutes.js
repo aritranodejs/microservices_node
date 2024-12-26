@@ -12,7 +12,7 @@ const router = express.Router();
 // Routes
 router.get('/', (req, res) => {
     try {
-        return jsonResponse(res, req.body, 'Welcome Order API', 200);   
+        return jsonResponse(res, req.body, 'Welcome Product API', 200);
     } catch (error) {
         return jsonResponse(res, req.body, error.message, 500);
     }

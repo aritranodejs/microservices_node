@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   user-service:
     build: ./user-service
@@ -5,10 +7,24 @@ services:
       - "3001:3001" # Map port 3001 in the container to 3001 on the host
     environment:
       - PORT=3001
+      - DB_CONNECTION_URL=mongodb://user-db:27017/user-service # MongoDB connection string for user-service
     volumes:
       - ./shared:/app/shared # Mount shared directory
     networks:
       - microservices-network
+    depends_on:
+      - user-db
+      - redis
+
+  user-db:
+    image: mongo:5.0
+    container_name: user-db
+    ports:
+      - "27018:27017" # Change external port to avoid conflicts
+    networks:
+      - microservices-network
+    volumes:
+      - user-db-data:/data/db # Persistent storage for MongoDB
 
   product-service:
     build: ./product-service
@@ -16,10 +32,24 @@ services:
       - "3002:3002" # Map port 3002 in the container to 3002 on the host
     environment:
       - PORT=3002
+      - DB_CONNECTION_URL=mongodb://product-db:27017/product-service # MongoDB connection string for product-service
     volumes:
       - ./shared:/app/shared # Mount shared directory
     networks:
       - microservices-network
+    depends_on:
+      - product-db
+      - redis
+
+  product-db:
+    image: mongo:5.0
+    container_name: product-db
+    ports:
+      - "27019:27017" # Change external port to avoid conflicts
+    networks:
+      - microservices-network
+    volumes:
+      - product-db-data:/data/db # Persistent storage for MongoDB
 
   order-service:
     build: ./order-service
@@ -27,10 +57,24 @@ services:
       - "3003:3003" # Map port 3003 in the container to 3003 on the host
     environment:
       - PORT=3003
+      - DB_CONNECTION_URL=mongodb://order-db:27017/order-service # MongoDB connection string for order-service
     volumes:
       - ./shared:/app/shared # Mount shared directory
     networks:
       - microservices-network
+    depends_on:
+      - order-db
+      - redis
+
+  order-db:
+    image: mongo:5.0
+    container_name: order-db
+    ports:
+      - "27020:27017" # Change external port to avoid conflicts
+    networks:
+      - microservices-network
+    volumes:
+      - order-db-data:/data/db # Persistent storage for MongoDB
 
   api-gateway:
     build: ./api-gateway
@@ -40,6 +84,11 @@ services:
       - ./shared:/app/shared # Mount shared directory
     networks:
       - microservices-network
+    depends_on:
+      - redis
+      - user-service
+      - product-service
+      - order-service
 
   redis:
     image: redis:alpine
@@ -47,7 +96,15 @@ services:
       - "6379:6379"
     networks:
       - microservices-network
+    volumes:
+      - redis-data:/data # Persistent storage for Redis
 
 networks:
   microservices-network:
     driver: bridge
+
+volumes:
+  user-db-data:
+  product-db-data:
+  order-db-data:
+  redis-data:

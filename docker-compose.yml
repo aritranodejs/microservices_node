@@ -1,87 +1,145 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  # ---------------------------- USER SERVICE ----------------------------
   user-service:
     build: ./user-service
     ports:
-      - "3001:3001" # Map port 3001 in the container to 3001 on the host
+      - "3001:3001"
     environment:
       - PORT=3001
-      - DB_CONNECTION_URL=mongodb://user-db:27017/user-service # MongoDB connection string for user-service
+      - DB_CONNECTION_URL=mongodb://user-db:27017/user-service
     volumes:
-      - ./shared:/app/shared # Mount shared directory
+      - ./shared:/app/shared
     networks:
       - microservices-network
     depends_on:
-      - user-db
-      - redis
+      user-db:
+        condition: service_healthy
+      user-migrations:
+        condition: service_completed_successfully
+    command: ["node", "src/index.js"]  # Start service after migrations
 
   user-db:
     image: mongo:5.0
     container_name: user-db
     ports:
-      - "27018:27017" # Change external port to avoid conflicts
+      - "27018:27017"
     networks:
       - microservices-network
     volumes:
-      - user-db-data:/data/db # Persistent storage for MongoDB
+      - user-db-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  user-migrations:
+    build: ./user-service
+    entrypoint: ["/bin/sh", "-c", "npx migrate-mongo up || echo 'No new migrations to apply'"]
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: "no"  # Run only once and exit
+
+  # ---------------------------- PRODUCT SERVICE ----------------------------
   product-service:
     build: ./product-service
     ports:
-      - "3002:3002" # Map port 3002 in the container to 3002 on the host
+      - "3002:3002"
     environment:
       - PORT=3002
-      - DB_CONNECTION_URL=mongodb://product-db:27017/product-service # MongoDB connection string for product-service
+      - DB_CONNECTION_URL=mongodb://product-db:27017/product-service
     volumes:
-      - ./shared:/app/shared # Mount shared directory
+      - ./shared:/app/shared
     networks:
       - microservices-network
     depends_on:
-      - product-db
-      - redis
+      product-db:
+        condition: service_healthy
+      product-migrations:
+        condition: service_completed_successfully
+    command: ["node", "src/index.js"]
 
   product-db:
     image: mongo:5.0
     container_name: product-db
     ports:
-      - "27019:27017" # Change external port to avoid conflicts
+      - "27019:27017"
     networks:
       - microservices-network
     volumes:
-      - product-db-data:/data/db # Persistent storage for MongoDB
+      - product-db-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  product-migrations:
+    build: ./product-service
+    entrypoint: ["/bin/sh", "-c", "npx migrate-mongo up || echo 'No new migrations to apply'"]
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: "no"
+
+  # ---------------------------- ORDER SERVICE ----------------------------
   order-service:
     build: ./order-service
     ports:
-      - "3003:3003" # Map port 3003 in the container to 3003 on the host
+      - "3003:3003"
     environment:
       - PORT=3003
-      - DB_CONNECTION_URL=mongodb://order-db:27017/order-service # MongoDB connection string for order-service
+      - DB_CONNECTION_URL=mongodb://order-db:27017/order-service
     volumes:
-      - ./shared:/app/shared # Mount shared directory
+      - ./shared:/app/shared
     networks:
       - microservices-network
     depends_on:
-      - order-db
-      - redis
+      order-db:
+        condition: service_healthy
+      order-migrations:
+        condition: service_completed_successfully
+    command: ["node", "src/index.js"]
 
   order-db:
     image: mongo:5.0
     container_name: order-db
     ports:
-      - "27020:27017" # Change external port to avoid conflicts
+      - "27020:27017"
     networks:
       - microservices-network
     volumes:
-      - order-db-data:/data/db # Persistent storage for MongoDB
+      - order-db-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  order-migrations:
+    build: ./order-service
+    entrypoint: ["/bin/sh", "-c", "npx migrate-mongo up || echo 'No new migrations to apply'"]
+    depends_on:
+      order-db:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: "no"
+
+  # ---------------------------- API GATEWAY ----------------------------
   api-gateway:
     build: ./api-gateway
     ports:
-      - "3000:3000" # Map port 3000 in the container to 3000 on the host
+      - "3000:3000"
     volumes:
-      - ./shared:/app/shared # Mount shared directory
+      - ./shared:/app/shared
     networks:
       - microservices-network
     depends_on:
@@ -90,6 +148,7 @@ services:
       - product-service
       - order-service
 
+  # ---------------------------- REDIS ----------------------------
   redis:
     image: redis:alpine
     ports:
@@ -97,8 +156,9 @@ services:
     networks:
       - microservices-network
     volumes:
-      - redis-data:/data # Persistent storage for Redis
+      - redis-data:/data
 
+# ---------------------------- NETWORK & VOLUMES ----------------------------
 networks:
   microservices-network:
     driver: bridge

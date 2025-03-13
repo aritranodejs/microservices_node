@@ -2,9 +2,6 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 
-// Helpers
-const { jsonResponse } = require('/app/shared/utils/response.js');
-
 // url of product-service
 const productServiceUrl = process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002/products';
 
@@ -17,11 +14,11 @@ router.all('*', async (req, res) => {
             data: req.body,
             headers: req.headers,
         });
-        return jsonResponse(res, apiResponse.data, 'Request forwarded successfully', apiResponse.status);
+        res.status(apiResponse.status).json(apiResponse.data);
     } catch (error) {
         const status = error.response?.status || 500;
         const message = error.response?.data?.error || error.message;
-        return jsonResponse(res, null, message, status);
+        res.status(status).json({ success: false, message });
     }
 });
 

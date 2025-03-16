@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 
 // url of order-service
-const orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://order-service:3003/orders';
+const orderServiceUrl = process.env.ORDER_SERVICE_URL || 'http://order-service:5003/orders';
 
 // Dynamic proxy for all routes
 router.all('*', async (req, res) => {

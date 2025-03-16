@@ -5,9 +5,9 @@ services:
   user-service:
     build: ./user-service
     ports:
-      - "3001:3001"
+      - "5001:5001"
     environment:
-      - PORT=3001
+      - PORT=5001
       - DB_CONNECTION_URL=mongodb://user-db:27017/user-service
     volumes:
       - ./shared:/app/shared
@@ -49,9 +49,9 @@ services:
   product-service:
     build: ./product-service
     ports:
-      - "3002:3002"
+      - "5002:5002"
     environment:
-      - PORT=3002
+      - PORT=5002
       - DB_CONNECTION_URL=mongodb://product-db:27017/product-service
     volumes:
       - ./shared:/app/shared
@@ -93,9 +93,9 @@ services:
   order-service:
     build: ./order-service
     ports:
-      - "3003:3003"
+      - "5003:5003"
     environment:
-      - PORT=3003
+      - PORT=5003
       - DB_CONNECTION_URL=mongodb://order-db:27017/order-service
     volumes:
       - ./shared:/app/shared
@@ -137,7 +137,7 @@ services:
   api-gateway:
     build: ./api-gateway
     ports:
-      - "3000:3000"
+      - "5000:5000"
     volumes:
       - ./shared:/app/shared
     networks:
